@@ -1,0 +1,4 @@
+# Requested files not be included, also dont include source data files
+*.csv
+*.xlsx
+*.sql
