@@ -2,4 +2,12 @@
 *.csv
 *.xlsx
 *.sql
+
+#credentials
 .env
+
+#ignore the code for external libraries
+node_modules/
+
+#ignore the local database container
+idx-mysql-local/

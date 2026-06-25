@@ -1,0 +1,17 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: idx-mysql-local
+    command: --socket=/tmp/mysql.sock  # Forces mysql.sock to a non-persistent location so it will properly start next time
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d  # Maps local SQL files to auto-run on first startup
+      - db_data:/var/lib/mysql                      # Connects the permanent data vault
+
+volumes:
+  db_data:
