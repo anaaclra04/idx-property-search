@@ -1,79 +1,76 @@
 # idx-property-search
-A Zillow/Redfin-style property search experience backed by real MLS data. 
+A Zillow/Redfin-style property search experience backed by real MLS data.
 Browse, filter, and explore property listings with full detail pages, interactive maps, and open house schedules.
 
-## MySQL Docker Local Environment
+This README is organized by week to track project progress as setup and tooling evolve.
+
+---
+
+## Week 1 — Docker Setup & Database Creation
 
 A guide to setting up and running a MySQL database inside a Docker container for local development.
 
----
-
-## Prerequisites
+### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) & Docker Compose installed and running
 - SQL schema/seed files (`.sql`) ready locally
-- A '.env' file in the 'backend/'directory
+- A `.env` file in the `backend/` directory
 
----
+### Environment Variables
 
-## Environment Variables
- 
 Never commit real credentials. Create a `.env` file in the same folder as `compose.yml`:
- 
+
 ```
 MYSQL_ROOT_PASSWORD=your_password_here
 MYSQL_DATABASE=your_db_name_here
 ```
- 
+
 A `.env.example` is committed to the repo as a reference template. Copy it and fill in your values:
- 
+
 ```bash
 cp .env.example .env
 ```
- 
+
 > **Important:** `.env` is in `.gitignore` and must never be committed.
- 
----
 
-## Quick Start
+### Quick Start
 
-### 1. Starting the Container
+**1. Starting the Container**
 
 ```bash
 docker compose up -d
 ```
 
-### 2. Verify the container is running
+**2. Verify the container is running**
 
 ```bash
 docker ps
 ```
 
----
-
-## Loading SQL Files
+### Loading SQL Files
 
 Only needed on first setup — after that, data persists across restarts automatically.
- 
-### Step 1 — Copy files into the container
- 
+
+**Step 1 — Copy files into the container**
+
 ```bash
 docker cp /path/to/your/file.sql idx-mysql-local:/tmp/
 ```
- 
-### Step 2 — Exec into the container
- 
+
+**Step 2 — Exec into the container**
+
 ```bash
 docker exec -it idx-mysql-local bash
 ```
- 
-### Step 3 — Import
- 
+
+**Step 3 — Import**
+
 ```bash
 mysql -u root -pYOUR_PASSWORD --socket=/tmp/mysql.sock YOUR_DB_NAME < /tmp/file.sql
 ```
+
 To import multiple files:
- 
+
 ```bash
 for f in /tmp/*.sql; do
   echo "Loading $f..."
@@ -81,96 +78,70 @@ for f in /tmp/*.sql; do
 done
 ```
 
-### Step 4 — Verify
- 
+**Step 4 — Verify**
+
 ```bash
 mysql -u root -pYOUR_PASSWORD --socket=/tmp/mysql.sock YOUR_DB_NAME -e "SHOW TABLES;"
 ```
- 
----
 
-## Stopping the Container
- 
+### Stopping the Container
+
 ```bash
 # Stop without losing data (recommended)
 docker compose down
- 
+
 # ⚠️ Stop AND delete all data (only use this to reset from scratch)
 docker compose down -v
 ```
- 
+
 > `docker compose down` is safe — your data lives in the named volume `backend_db_data` and survives restarts. Only `-v` destroys it.
- 
+
 ---
 
+## Week 2 — Node.js Project Setup & Database Connection Pool
 
-## Troubleshooting
+Setting up the Express backend, connecting it to MySQL through a connection pool, and adding a health check endpoint.
 
-**Container exits immediately**
-Run `docker logs idx-mysql-local` to inspect the error. A missing `MYSQL_ROOT_PASSWORD` is the most common cause.
+### Step 1 — Initialize the Node.js project
 
-**Can't connect on port 3306**
-Check if something else is already using that port: `lsof -i :3306`. Use a different host port if needed (e.g. `-p 3307:3306`).
-
-**SQL file errors**
-MySQL does not stop by default on the first error when running a script. To halt on error, add this to the top of your `.sql` file:
-```sql
-SET sql_mode = 'STRICT_ALL_TABLES';
+```bash
+cd backend
+npm init -y
 ```
 
-### `ERROR 2002: Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock'`
- 
-The `compose.yml` redirects the socket to `/tmp/mysql.sock`. Always pass `--socket=/tmp/mysql.sock` to the `mysql` client:
- 
+### Step 2 — Install dependencies
+
 ```bash
-mysql -u root -pYOUR_PASSWORD --socket=/tmp/mysql.sock YOUR_DB_NAME
+npm install express mysql2 dotenv cors
+npm install --save-dev nodemon
 ```
- 
-To confirm the actual socket path from the logs:
- 
+
+### Step 3 — Environment variables
+
+Add database credentials to the existing `.env` file in `backend/` (or create one if it doesn't exist yet): 
+Check /backend/.env.example
+
+> **Important:** Use `127.0.0.1` rather than `localhost` to avoid socket resolution issues. Confirm `.env` is listed in `.gitignore` before committing anything.
+
+
+### Step 4 — Add the dev script
+
+In `backend/package.json`, add a `dev` script that runs the server with `node` so it auto-restarts on file changes:
+
+```json
+"scripts": {
+  "dev": "node --env-file=.env index.js",
+}
+```
+
+### Running the server
+
 ```bash
-docker logs idx-mysql-local | grep socket
+npm run dev
 ```
- 
-You should see:
-```
-socket: '/tmp/mysql.sock'  port: 3306
-```
- 
-### `ERROR 1045: Access denied for user 'root'@'localhost'`
- 
-This means the volume was initialized with a different password than what's in your `.env`. MySQL only reads `MYSQL_ROOT_PASSWORD` on the very first startup when the data directory is empty — subsequent restarts reuse whatever password the volume was initialized with, regardless of `.env` changes.
- 
-Fix: wipe the volume and reinitialize from scratch.
- 
+
+Then verify the health endpoint:
+
 ```bash
-docker compose down -v
-docker compose up -d
+curl http://localhost:5001/api/health
 ```
- 
-To confirm what password the running container was actually initialized with:
- 
-```bash
-docker inspect idx-mysql-local | grep MYSQL_ROOT_PASSWORD
-```
- 
-### `zsh: no matches found: /tmp/*.sql`
- 
-Shell globs like `/tmp/*.sql` expand on your Mac host, not inside the container. Always exec into the container first before running import commands:
- 
-```bash
-docker exec -it idx-mysql-local bash
-# then run mysql commands from here
-```
- 
-### Database appears empty after restart
- 
-Before assuming data was lost, verify the tables are actually missing:
- 
-```bash
-docker exec -it idx-mysql-local mysql -u root -pYOUR_PASSWORD --socket=/tmp/mysql.sock -e "SHOW DATABASES; USE YOUR_DB_NAME; SHOW TABLES;"
-```
- 
-If tables are listed, the data is intact — the issue is likely a stale or misconfigured client connection. Reconnect using `127.0.0.1` instead of `localhost`.
- 
-If the database is genuinely empty, the volume may have been wiped with `docker compose down -v`. You'll need to re-import your `.sql` files.

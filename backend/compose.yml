@@ -10,8 +10,8 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./init-scripts:/docker-entrypoint-initdb.d  # Maps local SQL files to auto-run on first startup
-      - db_data:/var/lib/mysql                      # Connects the permanent data vault
+      - ./src/config/init.sql:/docker-entrypoint-initdb.d/init.sql # Maps local SQL files to auto-run on first startup
+      - db_data:/var/lib/mysql                                     # Connects the permanent data vault
 
 volumes:
   db_data:
