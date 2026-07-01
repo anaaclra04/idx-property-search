@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json()); // Allows parsing of JSON request bodies
 
 // Health check route to verify database connection
-app.get('/health', async (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     // Run the query
     await db.query('SELECT 1');
@@ -34,7 +34,11 @@ app.get('/health', async (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+// paginated, filterable GET endpoint backed by proper database indexes
+const propertiesRouter = require('./routes/properties');
+app.use('/api/properties', propertiesRouter);
