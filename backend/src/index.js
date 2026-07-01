@@ -42,3 +42,5 @@ app.listen(PORT, () => {
 // paginated, filterable GET endpoint backed by proper database indexes
 const propertiesRouter = require('./routes/properties');
 app.use('/api/properties', propertiesRouter);
+
+// TO DO, WORK ON THE BUG 
