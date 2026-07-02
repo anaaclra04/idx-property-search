@@ -130,7 +130,7 @@ In `backend/package.json`, add a `dev` script that runs the server with `node` s
 
 ```json
 "scripts": {
-  "dev": "node --env-file=.env index.js",
+  "dev": "node --env-file=.env ./src/index.js",
 }
 ```
 
@@ -145,3 +145,64 @@ Then verify the health endpoint:
 ```bash
 curl http://localhost:5001/api/health
 ```
+
+## Week 3 — Property Search Endpoint with Filters & Indexing
+ 
+Building a paginated, filterable `GET /api/properties` endpoint backed by proper database indexes.
+ 
+### API Contract
+ 
+```
+GET /api/properties?city=Malibu&minPrice=300000&beds=3&limit=20&offset=0
+```
+ 
+Response shape:
+ 
+```json
+{ "total": 87, "limit": 20, "offset": 0, "results": [...] }
+```
+ 
+### Step 1 — Add database indexes
+ 
+Connect to MySQL and run the following. Capture the `EXPLAIN` output **before** adding indexes for comparison.
+ 
+```sql
+-- Before: check query plan without indexes
+EXPLAIN SELECT * FROM rets_property WHERE city_col = 'Malibu';
+ 
+-- Create indexes on filtered columns
+CREATE INDEX idx_city      ON rets_property (city_col);
+CREATE INDEX idx_zip       ON rets_property (zip_col);
+CREATE INDEX idx_price     ON rets_property (list_price_col);
+CREATE INDEX idx_beds      ON rets_property (beds_col);
+CREATE INDEX idx_baths     ON rets_property (baths_col);
+ 
+-- Composite index for frequently combined filters (more efficient than two separate indexes)
+CREATE INDEX idx_city_price ON rets_property (city_col, list_price_col);
+ 
+-- After: verify indexes exist
+SHOW INDEXES FROM rets_property;
+ 
+-- After: confirm indexes are being used (key column should not be NULL)
+EXPLAIN SELECT * FROM rets_property WHERE city_col = 'Malibu' AND list_price_col >= 300000;
+```
+ 
+### Debug Challenge — The `minPrice` + `beds` Bug
+ 
+When `minPrice` and `beds` filters are applied together, the result count is wrong. The bug is in how the `values` array is built for parameterized queries: if a filter is pushed to `conditions` but its value is not pushed to `values` (or pushed in the wrong order), the placeholders `?` shift and bind to the wrong values.
+ 
+**Test case that exposes the bug:**
+ 
+```bash
+# Filter by minPrice only — note the total
+curl "http://localhost:5001/api/properties?minPrice=400000"
+ 
+# Filter by beds only — note the total
+curl "http://localhost:5001/api/properties?beds=3"
+ 
+# Both together — total should reflect both filters applied;
+# if it matches only one of them, the bug is present
+curl "http://localhost:5001/api/properties?minPrice=400000&beds=3"
+```
+ 
+**Fix:** Ensure every `conditions.push(...)` is immediately followed by its corresponding `values.push(...)`. Never push to one array without pushing to the other.

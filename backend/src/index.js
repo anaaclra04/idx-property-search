@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const db = require('./src/db/db'); 
+const db = require('./db/db'); 
 
 const app = express();
 
@@ -40,7 +40,6 @@ app.listen(PORT, () => {
 });
 
 // paginated, filterable GET endpoint backed by proper database indexes
-const propertiesRouter = require('./routes/properties');
+const propertiesRouter = require('../routes/properties');
 app.use('/api/properties', propertiesRouter);
 
-// TO DO, WORK ON THE BUG 

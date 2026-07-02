@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --env-file=.env index.js",
-    "watch": "nodemon --env-file=.env index.js",
+    "dev": "node --env-file=.env ./src/index.js",
+    "watch": "nodemon --env-file=.env ./src/index.js",
     "health": "node --env-file=.env test-db.js"
   },
   "keywords": [],

@@ -44,7 +44,8 @@ router.get('/', async (req, res) =>  {
         values.push(zipcode);
     }
     if (minPrice !== undefined) {
-        conditions.push('L_SystemPrice <= ?');
+        console.log('minPrice raw:', minPrice, 'parsed:', Number(minPrice));
+        conditions.push('L_SystemPrice >= ?');
         values.push(minPrice);
     }
     if (maxPrice !== undefined) {
