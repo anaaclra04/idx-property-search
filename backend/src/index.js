@@ -11,6 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // Allows parsing of JSON request bodies
 
+// request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
+  });
+  next();
+});
+
+
 // Health check route to verify database connection
 app.get('/api/health', async (req, res) => {
   try {
@@ -33,23 +44,12 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// paginated, filterable GET endpoint backed by proper database indexes
+const propertiesRouter = require('../routes/properties');
+app.use('/api/properties', propertiesRouter);
+
 // Start server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
-
-// paginated, filterable GET endpoint backed by proper database indexes
-const propertiesRouter = require('../routes/properties');
-app.use('/api/properties', propertiesRouter);
-
-// request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
-  });
-  next();
-});
-

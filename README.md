@@ -206,3 +206,57 @@ curl "http://localhost:5001/api/properties?minPrice=400000&beds=3"
 ```
  
 **Fix:** Ensure every `conditions.push(...)` is immediately followed by its corresponding `values.push(...)`. Never push to one array without pushing to the other.
+
+---
+ 
+## Week 4 — Property Detail & Open House Endpoints
+ 
+Adding two new endpoints: a property detail lookup by ID and an open house schedule lookup by property ID, plus request logging middleware.
+ 
+### Step 1 — Add request logging middleware
+ 
+Add to `backend/server.js` **before** any route definitions:
+ 
+### Step 2 — Add the detail and open houses routes
+ 
+In `backend/routes/properties.js`, add these routes **before** the `module.exports` line, and make sure `/:id/openhouses` is registered **before** `/:id`.
+ 
+> **Column names:** Replace `oh_date` and `oh_start_time` with the actual date/time column names in `rets_openhouse`. Verify with `DESCRIBE rets_openhouse;`.
+ 
+### Debug Challenge — Crash on a Specific Listing ID
+ 
+The open houses endpoint works for most properties but throws an unhandled promise rejection for one specific listing ID. The cause is a malformed or `NULL` `all_data` column in `rets_openhouse` — a longtext/JSON blob that is empty or unparseable for that particular row.
+ 
+**How to find it:**
+ 
+```sql
+-- Find rows with null or empty all_data in rets_openhouse
+SELECT L_ListingID, all_data
+FROM rets_openhouse
+WHERE all_data IS NULL OR all_data = '';
+```
+ 
+**Fix:** The `try/catch` block in the handler already prevents a full crash — make sure it is in place. If you are attempting to parse `all_data` as JSON in the backend, wrap it defensively:
+ 
+Alternatively, return `all_data` as a raw string and let the frontend parse it — you do not need to parse it in the backend at all.
+ 
+### Troubleshooting
+ 
+**`/openhouses` endpoint always returns 404 or treats the whole path as an ID**
+Route order issue — move `/:id/openhouses` above `/:id` in `properties.js`. Express matches routes top-to-bottom; the first match wins.
+ 
+**Open houses endpoint returns an empty array for every property**
+Verify the join key. The `rets_openhouse` table links to `rets_property` via `L_ListingID` — confirm this column exists and contains matching values with:
+```sql
+SELECT oh.L_ListingID
+FROM rets_openhouse oh
+JOIN rets_property p ON oh.L_ListingID = p.L_ListingID
+LIMIT 5;
+```
+ 
+**Crash / unhandled promise rejection on one listing ID**
+A `NULL` or malformed `all_data` value in `rets_openhouse` is the likely cause. See the Debug Challenge section above. Ensure every async route handler has a `try/catch` and never attempts `JSON.parse()` without a null check and error guard.
+ 
+**Logging middleware not printing output**
+Confirm the middleware is added to `server.js` before any `app.use('/api/...')` route mounts. Middleware registered after a route will not run for that route.
+ 

@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../src/db/db');
 
 function validateId(id, res) {
-    if (!id || id.length > 255 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+    if (!id || id.length > 50 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
         res.status(400).json({ error: 'Invalid listing ID format'});
         return false;
     }
@@ -14,6 +14,7 @@ function validateId(id, res) {
 
 // router returns open house events for a property
 router.get('/:id/openhouses', async (req, res) => {
+    console.log('openhouses route hit, id:', req.params.id);
     const { id } = req.params;
     if (!validateId(id, res)) return;
 
