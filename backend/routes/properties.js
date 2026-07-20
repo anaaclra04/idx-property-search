@@ -136,8 +136,10 @@ router.get('/', async (req, res) =>  {
         //DATA query -> append limit /offset values AFTER the filter values
         const dataSql = `
             SELECT 
-                id, L_City, L_Zip,
-                L_SystemPrice, L_Keyword2, LM_Dec_3 
+                id, L_ListingID, L_DisplayId, L_Address, L_Zip, LM_char10_70,
+                L_AddressStreet, L_City, L_State, L_Class, L_Type_, L_Keyword2,
+                LM_Dec_3, L_Keyword1, L_Keyword5, L_Keyword7, L_SystemPrice,
+                LM_Int2_3, L_Photos
             FROM rets_property
             ${where}
             ORDER BY id
@@ -153,3 +155,17 @@ router.get('/', async (req, res) =>  {
 });
 
 module.exports = router;
+
+/*
+# Open houses for a valid listing
+curl "http://localhost:5001/api/properties/1077426281/openhouses"
+
+# Orphaned ID → should be 404
+curl "http://localhost:5001/api/properties/1021795007/openhouses"
+
+# 404 for unknown property
+curl "http://localhost:5001/api/properties/doesnotexist999"
+
+# 400 for malformed ID
+curl "http://localhost:5001/api/properties/toolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongidtoolongid"
+ */

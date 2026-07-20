@@ -1,0 +1,22 @@
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.listings-count {
+  padding: 20px 20px 0;
+  color: #444;
+  font-weight: 600;
+}
+
+.listings-status {
+  padding: 40px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.listings-status--error {
+  color: #b91c1c;
+}
