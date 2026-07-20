@@ -260,3 +260,29 @@ A `NULL` or malformed `all_data` value in `rets_openhouse` is the likely cause. 
 **Logging middleware not printing output**
 Confirm the middleware is added to `server.js` before any `app.use('/api/...')` route mounts. Middleware registered after a route will not run for that route.
  
+ ## Week 5 — React Setup & Listings Page
+
+Building a React frontend that fetches and displays a grid of property cards from the Express API.
+
+### Step 1 — Scaffold the React app
+
+```bash
+npx create-react-app frontend
+cd frontend
+```
+
+### Step 2 — Configure the dev proxy
+
+Add a top-level `proxy` key to `frontend/package.json` so `/api/*` calls are forwarded to Express in development:
+
+```json
+"proxy": "http://localhost:5001"
+```
+
+> **Important:** This is only read once, at dev-server startup. Restart `npm start` after adding it.
+
+### Debug Challenge — Broken Images on Some (Not All) Properties
+
+After wiring up `PropertyCard`, every card showed "NO PHOTO AVAILABLE" even though `L_Photos` contained valid JSON arrays with real, working URLs (confirmed by pasting a URL directly into a browser tab).
+
+**Note:** `L_Photos` still needs defensive parsing regardless of the hotlinking issue — not all rows have valid JSON (some are `null` or empty), so `JSON.parse()` must be wrapped in `try/catch` with a placeholder fallback for missing, malformed, or empty-array cases.
