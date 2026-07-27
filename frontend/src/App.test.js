@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders the Property Search heading', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /property search/i })).toBeInTheDocument();
+});
+
+test('renders the listings page filters', () => {
+  render(<App />);
+  expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
 });

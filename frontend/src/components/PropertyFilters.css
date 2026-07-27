@@ -1,0 +1,59 @@
+.property-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 20px;
+  background: #f7f7f8;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.property-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.property-filters__field input,
+.property-filters__field select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  min-width: 120px;
+}
+
+.property-filters__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.property-filters__search-btn,
+.property-filters__clear-btn {
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.property-filters__search-btn {
+  background: #1f6feb;
+  color: #fff;
+}
+
+.property-filters__search-btn:hover {
+  background: #1a5fce;
+}
+
+.property-filters__clear-btn {
+  background: #fff;
+  color: #333;
+  border-color: #ccc;
+}
+
+.property-filters__clear-btn:hover {
+  background: #eee;
+}

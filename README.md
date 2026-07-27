@@ -286,3 +286,32 @@ Add a top-level `proxy` key to `frontend/package.json` so `/api/*` calls are for
 After wiring up `PropertyCard`, every card showed "NO PHOTO AVAILABLE" even though `L_Photos` contained valid JSON arrays with real, working URLs (confirmed by pasting a URL directly into a browser tab).
 
 **Note:** `L_Photos` still needs defensive parsing regardless of the hotlinking issue — not all rows have valid JSON (some are `null` or empty), so `JSON.parse()` must be wrapped in `try/catch` with a placeholder fallback for missing, malformed, or empty-array cases.
+
+## Week 6 — Filters UI & Introduction to Testing
+
+Adding a `PropertyFilters` form wired into `ListingsPage`, plus the first unit tests for the frontend.
+
+### API Contract (unchanged, now used from the UI)
+
+### Debug Challenge — Stale Search Results Flashing
+
+**Symptom:** Type a city, click Search, click Clear, type a different city, click Search — the first search's results briefly flash before the second search's results replace them.
+
+**Cause:** Overlapping async requests. Once filters trigger refetches, nothing stops an earlier, slower request from resolving *after* a later one and overwriting its results.
+
+**Fix:** A `useRef` counter (`latestRequestId`) tags each request as it's issued. When a response comes back, it's only committed to state if it's still the most recent request — otherwise it's silently discarded.
+
+### Troubleshooting
+
+**Filters don't seem to do anything on Search**
+Check that `PropertyFilters` is calling `onSearch(stripEmpty(filters))` and that `ListingsPage`'s `useEffect` depends on `filters` — if the dependency array is empty, it'll only fetch once on mount.
+
+**Old results flash briefly after a new search**
+See the Debug Challenge above — verify the `latestRequestId` ref check is in place in `ListingsPage.jsx`.
+
+**`npm test` fails with "fetch is not defined"**
+Make sure `global.fetch = jest.fn()` is set in a `beforeEach` in `client.test.js` — CRA's test environment doesn't polyfill `fetch`.
+
+### Note
+
+`beds` and `baths` filters were changed from exact match (`=`) to "at least" (`>=`) — a 3-bed search now includes 3, 4, 5+ bed properties, matching how real estate search UIs typically behave. The dropdown labels reflect this (`3+`, not `3`).

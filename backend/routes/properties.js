@@ -116,13 +116,13 @@ router.get('/', async (req, res) =>  {
         conditions.push('L_SystemPrice <= ?');
         values.push(maxPrice);
     }
-    //TO DO: return the properties with at least that many beds or baths.
+    // beds/baths are "at least this many" filters, not exact matches
     if (beds !== undefined) {
-        conditions.push('L_Keyword2 = ?'); 
+        conditions.push('L_Keyword2 >= ?'); 
         values.push(Number(beds));
     }
     if (baths !== undefined) {
-        conditions.push('LM_Dec_3 = ?');
+        conditions.push('LM_Dec_3 >= ?');
         values.push(baths);
     }
 
