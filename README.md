@@ -315,3 +315,24 @@ Make sure `global.fetch = jest.fn()` is set in a `beforeEach` in `client.test.js
 ### Note
 
 `beds` and `baths` filters were changed from exact match (`=`) to "at least" (`>=`) — a 3-bed search now includes 3, 4, 5+ bed properties, matching how real estate search UIs typically behave. The dropdown labels reflect this (`3+`, not `3`).
+
+## Week 7 — Pagination UI & Component Testing
+
+Adding page-number pagination below the property grid, with ellipsis handling for large result sets.
+
+### Debug Challenge — Duplicate Last Page Number
+
+**Symptom:** Near the end of a large page list, the pagination bar renders the last page number twice (e.g. `1 ... 2 3 4 ... 1` instead of `1 ... 21 22 23 24`).
+
+**Fix:** `getPageNumbers()` always derives `rightSiblingIndex` via `Math.min(currentPage + siblingCount, totalPages)`, decides whether to show dots by comparing that clamped value to `totalPages`, and always anchors the last page as the literal `totalPages` value rather than a derived constant. See `Pagination.test.js` for the regression tests that pin this down.
+
+### Troubleshooting
+
+**Pagination doesn't reset to page 1 after a new search**
+Check that `handleSearch` and `handleClear` in `ListingsPage.jsx` both call `setCurrentPage(1)` alongside `setFilters(...)`.
+
+**Page doesn't scroll to top when clicking a page number**
+Verify `handlePageChange` calls `window.scrollTo(0, 0)` — this only runs on explicit page-change clicks, not on filter changes.
+
+**Pagination controls show up even with only one page**
+`Pagination` returns `null` when `totalPages <= 1` — confirm `totalPages` is computed as `Math.ceil(total / itemsPerPage)` and not defaulting to something ≥ 2.
