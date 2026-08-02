@@ -1,4 +1,3 @@
-// frontend/src/components/PropertyFilters.test.js
 import { render, screen, fireEvent } from '@testing-library/react';
 import PropertyFilters from './PropertyFilters';
 

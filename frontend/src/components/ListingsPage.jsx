@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchProperties } from '../api/client';
 import PropertyCard from './PropertyCard';
 import PropertyFilters from './PropertyFilters';
+import Pagination from './Pagination';
 import './ListingsPage.css';
 
 export default function ListingsPage() {
   const [filters, setFilters] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20); // no page-size selector yet
   const [properties, setProperties] = useState([]);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('loading'); // 'loading' | 'error' | 'ready'
@@ -17,11 +20,12 @@ export default function ListingsPage() {
 
   useEffect(() => {
     const requestId = ++latestRequestId.current;
+    const offset = (currentPage - 1) * itemsPerPage;
 
     async function load() {
       setStatus('loading');
       try {
-        const data = await fetchProperties({ ...filters, offset: 0, limit: 20 });
+        const data = await fetchProperties({ ...filters, offset, limit: itemsPerPage });
         if (requestId !== latestRequestId.current) return; // a newer search superseded this one
         setProperties(data.properties ?? data.results ?? []);
         setTotal(data.total ?? 0);
@@ -34,15 +38,26 @@ export default function ListingsPage() {
     }
 
     load();
-  }, [filters]);
+  }, [filters, currentPage, itemsPerPage]);
 
   function handleSearch(newFilters) {
     setFilters(newFilters);
+    setCurrentPage(1); //new filters always start back at page 1
   }
 
   function handleClear() {
     setFilters({});
+    setCurrentPage(1);
   }
+
+  function handlePageChange(page) {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  }
+
+  const totalPages = Math.max(Math.ceil(total / itemsPerPage), 1);
+  const rangeStart = total == 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const rangeEnd = Math.min(currentPage * itemsPerPage, total);
 
   return (
     <div>
@@ -67,13 +82,18 @@ export default function ListingsPage() {
       {status === 'ready' && total > 0 && (
         <>
           <p className="listings-count">
-            Showing {properties.length} of {total} properties
+            Showing {rangeStart}-{rangeEnd} of {total} properties
           </p>
           <div className="listings-grid">
             {properties.map((p) => (
               <PropertyCard key={p.L_ListingID} property={p} />
             ))}
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </>
       )}
     </div>
