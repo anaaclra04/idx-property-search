@@ -1,0 +1,32 @@
+.openhouse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.openhouse-list__item {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.openhouse-list__date {
+  font-weight: 700;
+}
+
+.openhouse-list__time {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.openhouse-list__remarks {
+  margin: 8px 0 0;
+  color: #333;
+}
+
+.openhouse-list__empty {
+  color: #777;
+}

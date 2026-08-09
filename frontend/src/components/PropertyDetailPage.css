@@ -1,0 +1,82 @@
+.property-detail {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: left;
+}
+
+.property-detail__back {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #1f6feb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.property-detail__back:hover {
+  text-decoration: underline;
+}
+
+.property-detail__body {
+  padding-top: 20px;
+}
+
+.property-detail__price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.property-detail__address {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+}
+
+.property-detail__location {
+  color: #555;
+  margin: 4px 0 0;
+}
+
+.property-detail__stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+  font-size: 1rem;
+  color: #333;
+}
+
+.property-detail__section {
+  margin-top: 28px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 20px;
+}
+
+.property-detail__section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+.property-detail__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.property-detail__facts dt {
+  color: #777;
+}
+
+.property-detail__facts dd {
+  margin: 0;
+}
+
+.property-detail__status {
+  padding: 60px 20px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.property-detail__status--error {
+  color: #b91c1c;
+}

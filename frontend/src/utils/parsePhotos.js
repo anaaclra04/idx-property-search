@@ -20,3 +20,29 @@ export function getFirstPhotoUrl(lPhotos) {
 
   return PLACEHOLDER_IMAGE;
 }
+
+/* 
+Same parsing rules as getFirstPhotoUrl, but returns every usable photo URL
+(for the carousel and gallery). Never throws -- falls back to [] on
+malformed JSON or an empty/wrong-shaped array.
+*/ 
+export function getAllPhotoUrls(lPhotos) {
+  if (!lPhotos) return [];
+
+  let photos;
+  try {
+    photos = typeof lPhotos === 'string' ? JSON.parse(lPhotos) : lPhotos;
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(photos)) return [];
+
+  return photos
+    .map((p) => {
+      if (typeof p === 'string' && p.trim()) return p;
+      if (p && typeof p === 'object' && p.url) return p.url;
+      return null;
+    })
+    .filter(Boolean);
+}

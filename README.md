@@ -336,3 +336,64 @@ Verify `handlePageChange` calls `window.scrollTo(0, 0)` — this only runs on ex
 
 **Pagination controls show up even with only one page**
 `Pagination` returns `null` when `totalPages <= 1` — confirm `totalPages` is computed as `Math.ceil(total / itemsPerPage)` and not defaulting to something ≥ 2.
+
+## Week 8 — Property Detail Page End-to-End
+
+Adding React Router, a full property detail page, a photo carousel and gallery with lightbox, a Google Maps embed, and an open house list.
+
+### Step 1 — Install React Router
+
+```bash
+cd frontend
+npm install react-router-dom
+```
+
+Wrap the app in `BrowserRouter` and define two routes in `App.js`: `/` for `ListingsPage`, `/property/:id` for `PropertyDetailPage`.
+
+### Step 2 — Make property cards clickable
+
+`PropertyCard` is now a `<Link to={`/property/${L_ListingID}`}>` instead of a plain `<div>`. Its photo is rendered by a new `PropertyImageCarousel` component (prev/next arrows, `X / Y` counter) instead of a single `<img>`.
+
+> **Important:** Because the carousel lives inside a `<Link>`, every arrow button click must call both `e.preventDefault()` and `e.stopPropagation()` — otherwise clicking an arrow also navigates to the detail page.
+
+### Step 3 — Build the photo components
+
+Both `PropertyImageCarousel` (cards) and `PropertyImageGallery` (detail page) parse `L_Photos` via a shared `getAllPhotoUrls()` helper in `utils/parsePhotos.js`, which wraps `JSON.parse()` in a `try/catch` and falls back to `[]` on malformed or empty data.
+
+`PropertyImageGallery` adds a main image, a scrollable thumbnail strip, and a full-screen lightbox that opens on main-image click.
+
+### Step 4 — Set up the Google Maps Embed API
+
+1. Go to https://console.cloud.google.com and sign in
+2. Create a new project
+3. Enable the **Maps Embed API** under APIs & Services > Library
+4. Create an API key under APIs & Services > Credentials
+5. Restrict the key to `localhost:3000` and the Maps Embed API only
+6. Add the key to `frontend/.env`: REACT_APP_GOOGLE_MAPS_API_KEY=your_key
+
+> **Hint:** React env variables must start with `REACT_APP_` to be accessible in the browser. Restart `npm start` after editing `.env`.
+
+`PropertyMap` builds the embed URL as:
+https://www.google.com/maps/embed/v1/place?key=KEY&q=LAT,LNG&zoom=15
+
+It renders `null` when `lat` or `lng` is missing, so the map section is simply omitted rather than showing a broken iframe.
+
+### Step 5 — Display open houses
+
+`OpenHouseList` renders date, formatted start/end time, and remarks. Remarks come from the `OpenHouseRemarks` key inside the `all_data` JSON blob on `rets_openhouse` — see Debug Challenge below.
+
+### Debug Challenge — Open House Remarks Never Appear
+
+**Symptom:** After wiring up `OpenHouseList`, remarks never show up even for open houses known to have them, even though the backend's `/openhouses` endpoint returns `all_data` in every row.
+
+**Cause:** `OpenHouseRemarks` isn't its own column — it's a key inside the `all_data` JSON blob. The component was reading `oh.OpenHouseRemarks` directly instead of parsing `all_data` first.
+
+**Fix:** Parse `all_data` in the component (not the backend) and pull the key out of the parsed object
+
+### Debug Challenge — Lightbox Doesn't Close on Escape
+
+**Symptom:** The lightbox's `onKeyDown` handler is attached to its container `<div>`, but pressing Escape does nothing — the handler never fires.
+
+**Cause:** A plain `<div>` can't receive keyboard events at all unless it's focusable, and nothing was moving focus onto it even if it were.
+
+**Fix:** Add `tabIndex={-1}` to the lightbox `<div>` (focusable, but skipped in normal Tab order) and call `.focus()` on it via a `ref` in a `useEffect` that runs when the lightbox opens

@@ -1,8 +1,10 @@
-import { getFirstPhotoUrl } from '../utils/parsePhotos';
+import { Link } from 'react-router-dom';
+import PropertyImageCarousel from './PropertyImageCarousel';
+import { getAllPhotoUrls } from '../utils/parsePhotos';
 import './PropertyCard.css';
 
 //first photo (parsed from L_Photos JSON array), price, address, city/state, beds, baths, and sqft
-export default function PropertyCard({ property }) { 
+export default function PropertyCard({ property }) {
   const {
     L_ListingID,
     L_SystemPrice,
@@ -15,16 +17,11 @@ export default function PropertyCard({ property }) {
     L_Photos,
   } = property;
 
-  const photoUrl = getFirstPhotoUrl(L_Photos);
+  const photos = getAllPhotoUrls(L_Photos);
 
   return (
-    <div className="property-card">
-      <img
-        src={photoUrl}
-        alt={L_Address || 'Property'}
-        className="property-card__image"
-        onError={(e) => { e.target.src = '/placeholder-property.png'; }}
-      />
+    <Link to={`/property/${L_ListingID}`} className="property-card">
+      <PropertyImageCarousel photos={photos} alt={L_Address || 'Property'} />
       <div className="property-card__body">
         <p className="property-card__price">
           {L_SystemPrice ? `$${Number(L_SystemPrice).toLocaleString()}` : 'Price unavailable'}
@@ -37,6 +34,6 @@ export default function PropertyCard({ property }) {
           <span>{sqft ? `${Number(sqft).toLocaleString()} sqft` : '– sqft'}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
