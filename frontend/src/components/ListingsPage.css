@@ -20,3 +20,11 @@
 .listings-status--error {
   color: #b91c1c;
 }
+
+.listings-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

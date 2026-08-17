@@ -66,7 +66,7 @@ docker exec -it idx-mysql-local bash
 **Step 3 — Import**
 
 ```bash
-mysql -u root -pYOUR_PASSWORD --socket=/tmp/mysql.sock YOUR_DB_NAME < /tmp/file.sql
+mysql -u root -p --socket=/tmp/mysql.sock YOUR_DB_NAME < /tmp/file.sql
 ```
 
 To import multiple files:
@@ -397,3 +397,106 @@ It renders `null` when `lat` or `lng` is missing, so the map section is simply o
 **Cause:** A plain `<div>` can't receive keyboard events at all unless it's focusable, and nothing was moving focus onto it even if it were.
 
 **Fix:** Add `tabIndex={-1}` to the lightbox `<div>` (focusable, but skipped in normal Tab order) and call `.focus()` on it via a `ref` in a `useEffect` that runs when the lightbox opens
+
+---
+ 
+## Week 9 — Sorting, Favorites & Performance Optimization
+ 
+Implementing **Option 3: Sorting + Favorites** together, plus the required Part B performance work: composite indexes backed by real `EXPLAIN` measurements, enhanced request timing, a React Error Boundary, and a console-warnings pass.
+ 
+### Part A — Sorting
+ 
+`GET /api/properties` now accepts `sortBy` and `sortOrder` query parameters, validated against a whitelist so arbitrary column names can never reach the SQL string:
+ 
+```javascript
+const SORT_WHITELIST = {
+    price: 'L_SystemPrice',
+    sqft: 'LM_Int2_3',
+    beds: 'L_Keyword2',
+    dateListed: 'ListingContractDate',
+};
+```
+ 
+```
+GET /api/properties?sortBy=price&sortOrder=desc
+```
+ 
+Invalid `sortBy` values return a `400`. `sort.column` and `sort.order` are interpolated directly into the `ORDER BY` clause rather than passed as `?` placeholders — this is safe specifically *because* those values only ever come from the whitelist object above, never from the raw query string, and because `mysql2` placeholders can't parameterize column names or `ASC`/`DESC` in the first place.
+ 
+On the frontend, `SortControl` combines field + direction into single dropdown options (e.g. "Price: Low to High") and `ListingsPage` keeps `sortBy`/`sortOrder` as separate state from `filters`, so:
+- Sort **persists** across page changes
+- Sort **resets** whenever a new filter search or Clear Filters happens
+- Changing sort resets pagination back to page 1, since a re-sorted list starting on page 3 would be disorienting
+### Part A — Favorites
+ 
+`useFavorites` (`frontend/src/hooks/useFavorites.js`) persists favorited listing IDs to `localStorage` under the key `idx-favorites`. It's built on `useSyncExternalStore` with one module-level store, rather than independent `useState` + localStorage per component — this matters because favorites needs to stay in sync across three separate places at once (the heart button on any `PropertyCard`, the nav bar's favorites count, and the `/favorites` page itself). Independent local state per component would only pick up another component's change on a full remount.
+ 
+- Heart button lives inside `PropertyCard`, which is itself a `<Link>` — its click handler calls both `preventDefault()` and `stopPropagation()`, same pattern as the Week 8 carousel arrows
+- `/favorites` route (`FavoritesPage.jsx`) fetches full property data per favorited ID via `Promise.allSettled`, so a since-delisted property silently drops out of the view instead of breaking the whole page
+- Favorites count shows in the nav bar next to the "Favorites" link
+### Part B — Performance: Indexes
+ 
+**Before adding indexes**, the city + price filter query with sorting looked like this:
+ 
+```sql
+EXPLAIN SELECT * FROM rets_property
+WHERE LOWER(TRIM(L_City)) = LOWER(TRIM('Beverly Hills')) AND L_SystemPrice <= 800000
+ORDER BY L_SystemPrice LIMIT 20 OFFSET 0;
+```
+ 
+```
++----+-------------+---------------+------------+-------+---------------+-----------+---------+------+-------+----------+------------------------------------+
+| id | select_type | table         | partitions | type  | possible_keys | key       | key_len | ref  | rows  | filtered | Extra                              |
++----+-------------+---------------+------------+-------+---------------+-----------+---------+------+-------+----------+------------------------------------+
+|  1 | SIMPLE      | rets_property | NULL       | range | idx_price     | idx_price | 5       | NULL | 18294 |   100.00 | Using index condition; Using where |
++----+-------------+---------------+------------+-------+---------------+-----------+---------+------+-------+----------+------------------------------------+
+```
+ 
+MySQL used the existing `idx_price` to narrow by price, then checked the `LOWER(TRIM(L_City))` condition against **18,294 rows** individually. A plain index on `L_City` can't help here — MySQL can't match a transformed value (`LOWER(TRIM(...))`) against a raw-column index.
+ 
+**Fix:** a functional index built on the expression itself:
+ 
+```sql
+CREATE INDEX idx_city_norm_price
+  ON rets_property ((LOWER(TRIM(L_City))), L_SystemPrice);
+```
+ 
+**After:**
+ 
+```
++----+-------------+---------------+------------+-------+-------------------------------+---------------------+---------+------+------+----------+-------------+
+| id | select_type | table         | partitions | type  | possible_keys                 | key                 | key_len | ref  | rows | filtered | Extra       |
++----+-------------+---------------+------------+-------+-------------------------------+---------------------+---------+------+------+----------+-------------+
+|  1 | SIMPLE      | rets_property | NULL       | range | idx_price,idx_city_norm_price | idx_city_norm_price | 208     | NULL |    1 |   100.00 | Using where |
++----+-------------+---------------+------------+-------+-------------------------------+---------------------+---------+------+------+----------+-------------+
+```
+ 
+`rows` dropped from 18,294 to 1 — roughly an 18,000x reduction in rows examined for this query shape. Additional indexes were added for beds+baths, zip, and the new date-listed sort (`backend/sql/week9_indexes.sql`).
+ 
+> **MySQL strict mode gotcha:** Creating an index on `rets_property` can fail with `ERROR 1067 (42000): Invalid default value for 'active_check'` — a pre-existing invalid default (`'0000-00-00 00:00:00'`) on an unrelated column, surfaced because MySQL revalidates the whole table's schema on any index change. Run `SET SESSION sql_mode = '';` before the `CREATE INDEX` statements to work around it for that session, or permanently fix it with:
+> ```sql
+> ALTER TABLE rets_property MODIFY active_check TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+> ```
+ 
+### Part B — Error Boundary & Console Warnings
+ 
+`ErrorBoundary.jsx` wraps `<Routes>` in `App.js` (inside the router, outside the header/nav) so a crash in any single page shows a recovery UI with a "Try again" button, without taking down navigation entirely.
+ 
+`BrowserRouter` now opts into the `v7_startTransition` and `v7_relativeSplatPath` future flags, eliminating React Router's default deprecation warnings on v6.22+.
+ 
+### Debug Challenge — Sort Silently Does Nothing
+ 
+**Symptom:** Passing `sortBy=dateListed` returns results in the same order every time, no error.
+ 
+**Cause:** The `SORT_WHITELIST` key only maps to the correct column if it's been confirmed against the real schema. Guessing a RESO-style name like `ListDate` instead of the actual column (`ListingContractDate`) means the whitelist lookup still validates fine, but silently sorts by a nonexistent mapping — no SQL error, just wrong (or unchanged) ordering.
+ 
+**Fix:** Always confirm sortable columns with `DESCRIBE rets_property;` before adding them to `SORT_WHITELIST` — never assume a RESO standard name matches the actual MLS column.
+ 
+### Debug Challenge — Favorite Count Doesn't Update Everywhere
+ 
+**Symptom:** Clicking the heart on a `PropertyCard` toggles that card's icon, but the nav bar's favorites count doesn't change until the page is refreshed.
+ 
+**Cause:** Independent `useState` + localStorage reads per component only pick up the *initial* localStorage value — they have no way to know another component elsewhere in the tree just wrote to the same key.
+ 
+**Fix:** `useFavorites` uses `useSyncExternalStore` with one shared module-level store and listener set (`subscribe`/`notify`), so every component calling the hook re-renders when *any* of them calls `toggleFavorite`.
+ 

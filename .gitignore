@@ -11,3 +11,5 @@ node_modules/
 
 #ignore the local database container
 idx-mysql-local/
+
+.DS_Store

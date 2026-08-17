@@ -1,0 +1,19 @@
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.sort-control label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sort-control select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: #fff;
+}

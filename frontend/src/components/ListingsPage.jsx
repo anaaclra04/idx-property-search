@@ -3,10 +3,13 @@ import { fetchProperties } from '../api/client';
 import PropertyCard from './PropertyCard';
 import PropertyFilters from './PropertyFilters';
 import Pagination from './Pagination';
+import SortControl from './SortControl';
 import './ListingsPage.css';
 
 export default function ListingsPage() {
   const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState(undefined);
+  const [sortOrder, setSortOrder] = useState(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20); // no page-size selector yet
   const [properties, setProperties] = useState([]);
@@ -25,7 +28,12 @@ export default function ListingsPage() {
     async function load() {
       setStatus('loading');
       try {
-        const data = await fetchProperties({ ...filters, offset, limit: itemsPerPage });
+        const params = { ...filters, offset, limit: itemsPerPage };
+        if (sortBy) {
+          params.sortBy = sortBy;
+          params.sortOrder = sortOrder || 'asc';
+        }
+        const data = await fetchProperties(params);
         if (requestId !== latestRequestId.current) return; // a newer search superseded this one
         setProperties(data.properties ?? data.results ?? []);
         setTotal(data.total ?? 0);
@@ -38,16 +46,26 @@ export default function ListingsPage() {
     }
 
     load();
-  }, [filters, currentPage, itemsPerPage]);
+  }, [filters, sortBy, sortOrder, currentPage, itemsPerPage]);
 
   function handleSearch(newFilters) {
     setFilters(newFilters);
-    setCurrentPage(1); //new filters always start back at page 1
+    setSortBy(undefined);   // sort resets when filters change
+    setSortOrder(undefined);
+    setCurrentPage(1);      // new filters always start back at page 1
   }
 
   function handleClear() {
     setFilters({});
+    setSortBy(undefined);
+    setSortOrder(undefined);
     setCurrentPage(1);
+  }
+
+  function handleSortChange(newSortBy, newSortOrder) {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    setCurrentPage(1); // changing sort re-orders the whole result set, so start over at page 1
   }
 
   function handlePageChange(page) {
@@ -56,7 +74,7 @@ export default function ListingsPage() {
   }
 
   const totalPages = Math.max(Math.ceil(total / itemsPerPage), 1);
-  const rangeStart = total == 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const rangeEnd = Math.min(currentPage * itemsPerPage, total);
 
   return (
@@ -81,9 +99,12 @@ export default function ListingsPage() {
 
       {status === 'ready' && total > 0 && (
         <>
-          <p className="listings-count">
-            Showing {rangeStart}-{rangeEnd} of {total} properties
-          </p>
+          <div className="listings-toolbar">
+            <p className="listings-count">
+              Showing {rangeStart}-{rangeEnd} of {total} properties
+            </p>
+            <SortControl sortBy={sortBy} sortOrder={sortOrder} onSortChange={handleSortChange} />
+          </div>
           <div className="listings-grid">
             {properties.map((p) => (
               <PropertyCard key={p.L_ListingID} property={p} />

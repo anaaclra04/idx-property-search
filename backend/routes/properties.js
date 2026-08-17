@@ -9,6 +9,33 @@ function validateId(id, res) {
     }
     return true;
 }
+
+// Whitelist of sortable fields: friendly API name -> actual SQL column in rets_property
+const SORT_WHITELIST = {
+    price: 'L_SystemPrice',
+    sqft: 'LM_Int2_3',
+    beds: 'L_Keyword2',
+    dateListed: 'ListingContractDate',
+};
+
+function validateSort(sortBy, sortOrder, res) {
+    if (sortBy === undefined && sortOrder === undefined) {
+        return { column: null, order: null }; // no sort requested — caller falls back to default ORDER BY
+    }
+    if (sortBy === undefined || !SORT_WHITELIST[sortBy]) {
+        res.status(400).json({
+            error: `Invalid sortBy value. Must be one of: ${Object.keys(SORT_WHITELIST).join(', ')}`
+        });
+        return null;
+    }
+    const order = (sortOrder || 'asc').toLowerCase();
+    if (order !== 'asc' && order !== 'desc') {
+        res.status(400).json({ error: "sortOrder must be 'asc' or 'desc'" });
+        return null;
+    }
+    return { column: SORT_WHITELIST[sortBy], order: order.toUpperCase() };
+}
+
 // IMPORTANT: /openhouses must be registered BEFORE /:id
 // If /:id is first, Express matches "openhouses" as the id param
 
@@ -68,11 +95,11 @@ router.get('/:id', async (req, res) => {
 
 // Add filter support for: city (L_City), zipcode (L_Zip), minPrice/maxPrice (L_SystemPrice), beds (L_Keyword2), baths (LM_Dec_3)
 router.get('/', async (req, res) =>  {
-    const { city, zipcode, minPrice, maxPrice, beds, baths } = req.query;
+    const { city, zipcode, minPrice, maxPrice, beds, baths, sortBy, sortOrder } = req.query;
 
     // Pagination defaults & validation
     let limit = req.query.limit !== undefined ? Number(req.query.limit) : 20;
-    let offset = req.query.limit !== undefined ? Number(req.query.offset) : 0;
+    let offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
 
     if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
         return res.status(400).json({ error: 'limit must be an integer between 1 and 100'});
@@ -95,6 +122,10 @@ router.get('/', async (req, res) =>  {
         return res.status(400).json({ error: 'baths must be a non-negative number'});
     }
 
+    // Sort validation — must happen before we build the query
+    const sort = validateSort(sortBy, sortOrder, res);
+    if (sort === null) return; // validateSort already sent the 400 response
+
     // Dynamic WHERE clause
     const conditions = [];
     const values = [];
@@ -108,7 +139,6 @@ router.get('/', async (req, res) =>  {
         values.push(zipcode);
     }
     if (minPrice !== undefined) {
-        console.log('minPrice raw:', minPrice, 'parsed:', Number(minPrice));
         conditions.push('L_SystemPrice >= ?');
         values.push(minPrice);
     }
@@ -116,9 +146,8 @@ router.get('/', async (req, res) =>  {
         conditions.push('L_SystemPrice <= ?');
         values.push(maxPrice);
     }
-    // beds/baths are "at least this many" filters, not exact matches
     if (beds !== undefined) {
-        conditions.push('L_Keyword2 >= ?'); 
+        conditions.push('L_Keyword2 >= ?');
         values.push(Number(beds));
     }
     if (baths !== undefined) {
@@ -128,12 +157,16 @@ router.get('/', async (req, res) =>  {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    // sort.column is pulled from our own whitelist object, never from raw user input,
+    // so it's safe to interpolate directly, string params can't be used for column/direction in mysql2
+    const orderBy = sort.column
+        ? `ORDER BY ${sort.column} ${sort.order}`
+        : 'ORDER BY id';
+
     try {
-        //COUNT query -> same values array, no limit/offset
         const countSql = `SELECT COUNT(*) as total FROM rets_property ${where}`;
         const [[{total}]] = await pool.query(countSql, values);
 
-        //DATA query -> append limit /offset values AFTER the filter values
         const dataSql = `
             SELECT 
                 id, L_ListingID, L_DisplayId, L_Address, L_Zip, LM_char10_70,
@@ -142,9 +175,9 @@ router.get('/', async (req, res) =>  {
                 LM_Int2_3, L_Photos
             FROM rets_property
             ${where}
-            ORDER BY id
+            ${orderBy}
             LIMIT ? OFFSET ?
-        `; //TO DO add all the property details
+        `;
         const [results] = await pool.query(dataSql, [...values, limit, offset]);
 
         res.json({ total, limit, offset, results });

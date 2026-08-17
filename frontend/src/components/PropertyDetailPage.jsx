@@ -7,7 +7,6 @@ import PropertyMap from './PropertyMap';
 import OpenHouseList from './OpenHouseList';
 import './PropertyDetailPage.css';
 
-//Double check fields 
 const YEAR_BUILT_FIELD = 'YearBuilt';
 const DESCRIPTION_FIELD = 'L_Remarks';
 

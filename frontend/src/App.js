@@ -1,22 +1,38 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import ListingsPage from './components/ListingsPage';
 import PropertyDetailPage from './components/PropertyDetailPage';
+import FavoritesPage from './components/FavoritesPage';
+import ErrorBoundary from './components/ErrorBoundary';
+import { useFavorites } from './hooks/useFavorites';
 import './App.css';
+
+function AppHeader() {
+  const { count } = useFavorites();
+  return (
+    <header className="App-header-simple">
+      <h1>Property Search</h1>
+      <nav className="App-nav">
+        <Link to="/">Listings</Link>
+        <Link to="/favorites">Favorites {count > 0 && `(${count})`}</Link>
+      </nav>
+    </header>
+  );
+}
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="App">
-       <header className="App-header-simple">
-         <h1>Property Search</h1>
-       </header>
-       <Routes>
-          <Route path="/" element={<ListingsPage />} />
-          <Route path="/property/:id" element={<PropertyDetailPage />} />
-       </Routes>
-     </div>
+        <AppHeader />
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<ListingsPage />} />
+            <Route path="/property/:id" element={<PropertyDetailPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+          </Routes>
+        </ErrorBoundary>
+      </div>
     </BrowserRouter>
-    
   );
 }
 

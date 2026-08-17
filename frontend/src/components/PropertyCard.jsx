@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import PropertyImageCarousel from './PropertyImageCarousel';
 import { getAllPhotoUrls } from '../utils/parsePhotos';
+import { useFavorites } from '../hooks/useFavorites';
 import './PropertyCard.css';
 
 //first photo (parsed from L_Photos JSON array), price, address, city/state, beds, baths, and sqft
@@ -18,10 +19,29 @@ export default function PropertyCard({ property }) {
   } = property;
 
   const photos = getAllPhotoUrls(L_Photos);
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(L_ListingID);
+
+  function handleHeartClick(e) {
+    e.preventDefault();   // heart sits inside a <Link> — don't follow it
+    e.stopPropagation();  // and don't let the click bubble up to the card either
+    toggleFavorite(L_ListingID);
+  }
 
   return (
     <Link to={`/property/${L_ListingID}`} className="property-card">
-      <PropertyImageCarousel photos={photos} alt={L_Address || 'Property'} />
+      <div className="property-card__media">
+        <PropertyImageCarousel photos={photos} alt={L_Address || 'Property'} />
+        <button
+          type="button"
+          className={`property-card__favorite-btn${favorited ? ' property-card__favorite-btn--active' : ''}`}
+          onClick={handleHeartClick}
+          aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+          aria-pressed={favorited}
+        >
+          {favorited ? '♥' : '♡'}
+        </button>
+      </div>
       <div className="property-card__body">
         <p className="property-card__price">
           {L_SystemPrice ? `$${Number(L_SystemPrice).toLocaleString()}` : 'Price unavailable'}

@@ -36,3 +36,34 @@
   color: #555;
   font-size: 0.9rem;
 }
+
+.property-card__media {
+  position: relative;
+}
+
+.property-card__favorite-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #444;
+}
+
+.property-card__favorite-btn--active {
+  color: #e0245e;
+}
+
+.property-card__favorite-btn:hover {
+  background: #fff;
+}
