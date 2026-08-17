@@ -1,19 +1,28 @@
 .sort-control {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   margin: 0.75rem 0;
 }
 
 .sort-control label {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
 }
 
 .sort-control select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
-  background: #fff;
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.sort-control select:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px rgba(28, 124, 84, 0.15);
 }

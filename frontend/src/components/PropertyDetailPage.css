@@ -1,82 +1,102 @@
 .property-detail {
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px;
   text-align: left;
 }
 
 .property-detail__back {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 16px;
-  color: #1f6feb;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
   text-decoration: none;
   font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.property-detail__back::before {
+  content: '←';
 }
 
 .property-detail__back:hover {
-  text-decoration: underline;
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--secondary);
 }
 
 .property-detail__body {
-  padding-top: 20px;
+  padding-top: 24px;
 }
 
 .property-detail__price {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 400;
   margin: 0;
+  color: var(--foreground);
 }
 
 .property-detail__address {
   margin: 4px 0 0;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
+  color: var(--foreground);
 }
 
 .property-detail__location {
-  color: #555;
+  color: var(--muted-foreground);
   margin: 4px 0 0;
 }
 
 .property-detail__stats {
   display: flex;
-  gap: 20px;
-  margin-top: 16px;
+  gap: 24px;
+  margin-top: 20px;
   font-size: 1rem;
-  color: #333;
+  color: var(--foreground);
+  font-weight: 500;
 }
 
 .property-detail__section {
-  margin-top: 28px;
-  border-top: 1px solid #e0e0e0;
-  padding-top: 20px;
+  margin-top: 32px;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
 }
 
 .property-detail__section h2 {
-  font-size: 1.1rem;
-  margin: 0 0 12px;
+  font-size: 1.2rem;
+  margin: 0 0 14px;
+  color: var(--foreground);
 }
 
 .property-detail__facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 4px 16px;
+  gap: 8px 20px;
   margin: 0;
 }
 
 .property-detail__facts dt {
-  color: #777;
+  color: var(--muted-foreground);
 }
 
 .property-detail__facts dd {
   margin: 0;
+  font-weight: 500;
 }
 
 .property-detail__status {
-  padding: 60px 20px;
+  padding: 64px 20px;
   text-align: center;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  color: var(--muted-foreground);
 }
 
 .property-detail__status--error {
-  color: #b91c1c;
+  color: var(--danger);
 }

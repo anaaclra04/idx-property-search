@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import ListingsPage from './components/ListingsPage';
 import PropertyDetailPage from './components/PropertyDetailPage';
 import FavoritesPage from './components/FavoritesPage';
@@ -12,8 +12,8 @@ function AppHeader() {
     <header className="App-header-simple">
       <h1>Property Search</h1>
       <nav className="App-nav">
-        <Link to="/">Listings</Link>
-        <Link to="/favorites">Favorites {count > 0 && `(${count})`}</Link>
+        <NavLink to="/" end>Listings</NavLink>
+        <NavLink to="/favorites">Favorites {count > 0 && `(${count})`}</NavLink>
       </nav>
     </header>
   );

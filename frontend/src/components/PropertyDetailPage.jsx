@@ -50,7 +50,7 @@ export default function PropertyDetailPage() {
     return (
       <div className="property-detail__status property-detail__status--error">
         <p>Couldn't load this property: {errorMessage}</p>
-        <Link to="/">← Back to listings</Link>
+        <Link to="/">Back to listings</Link>
       </div>
     );
   }
@@ -77,7 +77,7 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="property-detail">
-      <Link to="/" className="property-detail__back">← Back to listings</Link>
+      <Link to="/" className="property-detail__back">Back to listings</Link>
 
       <PropertyImageGallery photos={photos} alt={L_Address || 'Property'} />
 

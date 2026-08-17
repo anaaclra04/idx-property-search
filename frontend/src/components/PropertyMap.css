@@ -1,24 +1,25 @@
 .property-map {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .property-map__frame {
   width: 100%;
   height: 300px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .property-map__directions {
   align-self: flex-start;
-  color: #1f6feb;
+  color: var(--primary);
   font-weight: 600;
   text-decoration: none;
   font-size: 0.9rem;
 }
 
 .property-map__directions:hover {
+  color: var(--primary-hover);
   text-decoration: underline;
 }
