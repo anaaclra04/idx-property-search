@@ -41,7 +41,6 @@ function validateSort(sortBy, sortOrder, res) {
 
 // router returns open house events for a property
 router.get('/:id/openhouses', async (req, res) => {
-    console.log('openhouses route hit, id:', req.params.id);
     const { id } = req.params;
     if (!validateId(id, res)) return;
 
