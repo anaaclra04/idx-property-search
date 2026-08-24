@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import ListingsPage from './components/ListingsPage';
-import PropertyDetailPage from './components/PropertyDetailPage';
-import FavoritesPage from './components/FavoritesPage';
+import ListingsPage from './pages/ListingsPage';
+import PropertyDetailPage from './pages/PropertyDetailPage';
+import FavoritesPage from './pages/FavoritesPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useFavorites } from './hooks/useFavorites';
 import './App.css';

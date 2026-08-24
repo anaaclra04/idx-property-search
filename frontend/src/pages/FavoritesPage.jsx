@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchPropertyDetail } from '../api/client';
 import { useFavorites } from '../hooks/useFavorites';
-import PropertyCard from './PropertyCard';
+import PropertyCard from '../components/PropertyCard';
 import './FavoritesPage.css';
 
 export default function FavoritesPage() {

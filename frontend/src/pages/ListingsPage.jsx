@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchProperties } from '../api/client';
-import PropertyCard from './PropertyCard';
-import PropertyFilters from './PropertyFilters';
-import Pagination from './Pagination';
-import SortControl from './SortControl';
+import PropertyCard from '../components/PropertyCard';
+import PropertyFilters from '../components/PropertyFilters';
+import Pagination from '../components/Pagination';
+import SortControl from '../components/SortControl';
 import './ListingsPage.css';
 
 export default function ListingsPage() {
