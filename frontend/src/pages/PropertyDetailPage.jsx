@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPropertyDetail, fetchOpenHouses } from '../api/client';
 import { getAllPhotoUrls } from '../utils/parsePhotos';
-import PropertyImageGallery from './PropertyImageGallery';
-import PropertyMap from './PropertyMap';
-import OpenHouseList from './OpenHouseList';
+import PropertyImageGallery from '../components/PropertyImageGallery';
+import PropertyMap from '../components/PropertyMap';
+import OpenHouseList from '../components/OpenHouseList';
 import './PropertyDetailPage.css';
 
 const YEAR_BUILT_FIELD = 'YearBuilt';

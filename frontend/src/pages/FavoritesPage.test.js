@@ -30,8 +30,8 @@ test('fetches and displays favorited properties', async () => {
 
   await waitFor(() => {
     expect(screen.getByText('Address 1')).toBeInTheDocument();
-    expect(screen.getByText('Address 2')).toBeInTheDocument();
   });
+  expect(screen.getByText('Address 2')).toBeInTheDocument();
 });
 
 test('skips favorites whose property fetch fails (e.g. delisted)', async () => {
@@ -47,6 +47,6 @@ test('skips favorites whose property fetch fails (e.g. delisted)', async () => {
 
   await waitFor(() => {
     expect(screen.getByText('Address 1')).toBeInTheDocument();
-    expect(screen.queryByText('Address 2')).not.toBeInTheDocument();
   });
+  expect(screen.queryByText('Address 2')).not.toBeInTheDocument();
 });

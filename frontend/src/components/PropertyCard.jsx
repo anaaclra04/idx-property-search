@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import PropertyImageCarousel from './PropertyImageCarousel';
 import { getAllPhotoUrls } from '../utils/parsePhotos';
@@ -57,3 +58,17 @@ export default function PropertyCard({ property }) {
     </Link>
   );
 }
+
+PropertyCard.propTypes = {
+  property: PropTypes.shape({
+    L_ListingID: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    L_SystemPrice: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    L_Address: PropTypes.string,
+    L_City: PropTypes.string,
+    L_State: PropTypes.string,
+    L_Keyword2: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    LM_Dec_3: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    LM_Int2_3: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    L_Photos: PropTypes.string,
+  }).isRequired,
+};

@@ -500,3 +500,41 @@ CREATE INDEX idx_city_norm_price
  
 **Fix:** `useFavorites` uses `useSyncExternalStore` with one shared module-level store and listener set (`subscribe`/`notify`), so every component calling the hook re-renders when *any* of them calls `toggleFavorite`.
  
+## Week 10 — Git Workflow & Code Organization
+
+No new product features this week — the goal was a professional Git history and a maintainable folder structure, done through the actual workflow rather than after the fact.
+
+### Git Workflow
+
+A `develop` branch was created off `main`, and every change from this point forward went through a feature branch merged into `develop` with a conventional commit message (`type(scope): description` — `feat`, `fix`, `refactor`, `test`, `docs`, or `chore`):
+
+| Branch | Commit |
+|---|---|
+| `feature/frontend-tooling` | `fix(frontend): restore package.json and wire up eslint/prop-types tooling` |
+| `feature/folder-structure` | `refactor(frontend): organize page components into src/pages` |
+| `feature/property-card-proptypes` | `refactor(PropertyCard): add PropTypes validation for property prop` |
+| `feature/cleanup-console-and-dead-code` | `chore(backend): remove leftover debug console.log` |
+| `feature/pr-template` | `docs(github): add pull request template` |
+| `feature/week10-readme` | `docs(readme): add Week 10 entry` |
+
+A `.github/pull_request_template.md` now prompts every PR for a summary, change type, a testing note, and a cleanup/lint checklist.
+
+The earlier commits on `main` (Weeks 1–9) predate this workflow and were left as-is rather than rewritten — they're an honest record of ~2 months of incremental work, and rewriting them would mean fabricating a branch history that never happened.
+
+### Code Organization
+
+`frontend/src` is now organized by role:
+src/
+├── api/ # HTTP client
+├── components/ # reusable, non-route components (PropertyCard, filters, pagination, etc.)
+├── pages/ # route-level components (ListingsPage, PropertyDetailPage, FavoritesPage)
+├── hooks/ # useFavorites
+└── utils/ # parsePhotos
+
+`PropertyCard` was already split into its own file from earlier weeks; this week it gained full `PropTypes` validation for every prop, shaped against the real MLS column names it destructures (`L_ListingID`, `L_SystemPrice`, `L_Keyword2`, etc.) so a mismatched prop shows up as a dev-time console warning instead of a silent rendering bug.
+
+### Debug Challenge — Lint Had Nothing to Run
+
+**Symptom:** `npm run lint` didn't exist as a script, even though Create React App bundles ESLint internally (it just runs during `start`/`build`, not standalone).
+
+**Fix:** Added `eslint` and `eslint-config-react-app` as dev dependencies and a `lint` script (`eslint src --ext .js,.jsx --max-warnings 0`), plus a `no-console` rule (errors allowed, matching the ErrorBoundary and backend logging patterns already in use) to catch stray debug statements going forward instead of relying on a manual grep.
