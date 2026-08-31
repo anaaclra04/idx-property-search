@@ -2,7 +2,270 @@
 A Zillow/Redfin-style property search experience backed by real MLS data.
 Browse, filter, and explore property listings with full detail pages, interactive maps, and open house schedules.
 
-This README is organized by week to track project progress as setup and tooling evolve.
+> The build log below (organized by week) is kept as an honest record of how this project was actually built, including the debugging along the way. This section is the reference doc: everything a new developer needs to clone, run, and understand the project without reading the log.
+
+## Table of Contents
+
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [API Reference](#api-reference)
+- [Database Schema](#database-schema)
+- [Testing](#testing)
+- [Known Issues & Future Improvements](#known-issues--future-improvements)
+- [Weekly Build Log](#week-1--docker-setup--database-creation)
+
+## Screenshot
+![Listings page](docs/screenshot.png)
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| Frontend | React | 19.2 |
+| Frontend | React Router | 6.26 |
+| Frontend | Create React App (react-scripts) | 5.0.1 |
+| Frontend testing | Jest + React Testing Library | bundled with CRA / RTL 16.3 |
+| Backend | Node.js | 18+ (LTS recommended) |
+| Backend | Express | 5.2 |
+| Backend | mysql2 (promise API) | 3.22 |
+| Backend testing | Jest + Supertest | 29.7 / 7.1 |
+| Database | MySQL | 8.0 |
+| Infra | Docker Compose | — |
+| Maps | Google Maps Embed API | — |
+
+## Getting Started
+
+These steps take a fresh machine to a fully running app: database, backend API, and frontend.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) & Docker Compose
+- Node.js 18+ and npm
+- MLS SQL dump file(s) to seed the database (not included in this repo)
+- A Google Maps Embed API key (only needed for the map on the property detail page — the rest of the app works without it)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/anaaclra04/idx-property-search.git
+cd idx-property-search
+```
+
+### 2. Start the database
+
+```bash
+cd backend
+cp .env.example .env
+# edit .env and set DB_PASSWORD / DB_NAME to your own values
+docker compose up -d
+docker ps   # confirm idx-mysql-local is running
+```
+
+### 3. Load the MLS data
+
+Only needed once — data persists across container restarts via the `db_data` volume.
+
+```bash
+docker cp /path/to/your/file.sql idx-mysql-local:/tmp/
+docker exec -it idx-mysql-local bash
+mysql -u root -p --socket=/tmp/mysql.sock YOUR_DB_NAME < /tmp/file.sql
+```
+
+Verify the tables loaded:
+
+```bash
+mysql -u root -pYOUR_PASSWORD --socket=/tmp/mysql.sock YOUR_DB_NAME -e "SHOW TABLES;"
+```
+
+### 4. Configure and start the backend
+
+Still inside `backend/`, fill in the rest of `.env` (`DB_USER`, `DB_HOST=127.0.0.1`, `PORT=5001`, `DB_PORT=3306`):
+
+```bash
+npm install
+npm run dev
+```
+
+Verify it's up:
+
+```bash
+curl http://localhost:5001/api/health
+```
+
+### 5. Configure and start the frontend
+
+```bash
+cd ../frontend
+cp .env.example .env
+# add your Google Maps Embed API key to .env (optional — see Prerequisites)
+npm install
+npm start
+```
+
+The app opens at `http://localhost:3000` and proxies `/api/*` requests to the backend on port 5001.
+
+### Common setup issues
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Backend exits immediately with a connection error | `.env` missing or MySQL container not running | Confirm `docker ps` shows `idx-mysql-local`, and that `.env` values match the `compose.yml` environment | 
+| Backend can't connect but the container is running | Using `localhost` instead of `127.0.0.1` in `DB_HOST` | `localhost` triggers socket resolution that fails outside Docker's network — use `127.0.0.1` |
+| Map doesn't render on the detail page | Missing or invalid `REACT_APP_GOOGLE_MAPS_API_KEY` | The app degrades gracefully (no map section) — add a key to `frontend/.env` and restart `npm start` if you want the map |
+| Frontend can't reach the API at all | Backend not running, or `proxy` missing from `frontend/package.json` | Start the backend first; the `proxy` field is only read once at dev-server startup, so restart `npm start` after changing it |
+
+## API Reference
+
+Base URL in development: `http://localhost:5001/api`
+
+### `GET /api/health`
+
+Checks that the backend can reach the database.
+
+```bash
+curl http://localhost:5001/api/health
+```
+
+```json
+{ "status": "UP", "database": "CONNECTED", "timestamp": "2026-08-31T12:00:00.000Z" }
+```
+
+### `GET /api/properties`
+
+Paginated, filterable, sortable list of properties.
+
+| Query param | Type | Notes |
+|---|---|---|
+| `city` | string | Case/whitespace-insensitive exact match |
+| `zipcode` | string | Exact match |
+| `minPrice`, `maxPrice` | number | Inclusive bounds |
+| `beds`, `baths` | number | "At least" (`>=`), not exact — a search for `beds=3` includes 3, 4, 5+ |
+| `sortBy` | `price` \| `sqft` \| `beds` \| `dateListed` | Any other value returns `400` |
+| `sortOrder` | `asc` \| `desc` | Defaults to `asc` |
+| `limit` | integer 1–100 | Defaults to 20 |
+| `offset` | integer ≥ 0 | Defaults to 0 |
+
+```bash
+curl "http://localhost:5001/api/properties?city=Malibu&minPrice=400000&beds=3&sortBy=price&sortOrder=desc&limit=20&offset=0"
+```
+
+```json
+{
+  "total": 87,
+  "limit": 20,
+  "offset": 0,
+  "results": [
+    {
+      "id": 1,
+      "L_ListingID": "271555",
+      "L_Address": "3766 Deedham Drive",
+      "L_City": "Malibu",
+      "L_State": "CA",
+      "L_Keyword2": 4,
+      "LM_Dec_3": 3,
+      "L_SystemPrice": 2150000,
+      "LM_Int2_3": 2170,
+      "L_Photos": "[\"https://media.crmls.org/...\"]"
+    }
+  ]
+}
+```
+
+A validation error (bad `limit`, bad `sortBy`, non-numeric `minPrice`, etc.) returns `400`:
+
+```json
+{ "error": "Invalid sortBy value. Must be one of: price, sqft, beds, dateListed" }
+```
+
+### `GET /api/properties/:id`
+
+Full detail for a single property, looked up by `L_ListingID`.
+
+```bash
+curl "http://localhost:5001/api/properties/271555"
+```
+
+```json
+{ "id": 1, "L_ListingID": "271555", "L_Address": "3766 Deedham Drive", "...": "full row" }
+```
+
+Returns `404` if the ID doesn't match any property, or `400` if the ID isn't a valid format (alphanumeric, `_`/`-`, ≤ 50 chars).
+
+### `GET /api/properties/:id/openhouses`
+
+Open house events for a property, ordered by date/start time.
+
+```bash
+curl "http://localhost:5001/api/properties/271555/openhouses"
+```
+
+```json
+{
+  "total": 1,
+  "results": [
+    {
+      "id": 1,
+      "L_ListingID": "271555",
+      "OpenHouseDate": "2026-09-06",
+      "OH_StartTime": "13:00:00",
+      "OH_EndTime": "15:00:00",
+      "all_data": "{\"OpenHouseRemarks\":\"Sunday open house\"}"
+    }
+  ]
+}
+```
+
+Returns `total: 0, results: []` (not a 404) when the property exists but has no open houses. Returns `404` if the property itself doesn't exist.
+
+## Database Schema
+
+Two tables, both loaded from raw MLS/RETS exports — column names follow the MLS/RESO naming convention, not a human-friendly one, and were verified with `DESCRIBE <table>;` rather than assumed.
+
+**`rets_property`** — one row per listing. Columns used by the API:
+
+| Column | Meaning |
+|---|---|
+| `L_ListingID` | Unique listing ID — used as the API's `:id` and the join key to `rets_openhouse` |
+| `L_Address`, `L_AddressStreet`, `L_City`, `L_State`, `L_Zip` | Address fields |
+| `L_SystemPrice` | List price |
+| `L_Keyword2` | Bedroom count |
+| `LM_Dec_3` | Bathroom count |
+| `LM_Int2_3` | Square footage |
+| `L_Photos` | JSON-encoded array of photo URLs (or URL objects) — parsed defensively, see [Known Issues](#known-issues--future-improvements) |
+| `ListingContractDate` | Date listed (sortable via `sortBy=dateListed`) |
+
+**`rets_openhouse`** — one row per open house event, linked to `rets_property` via `L_ListingID` (not a foreign key in the schema, just a shared value).
+
+| Column | Meaning |
+|---|---|
+| `L_ListingID` | Join key back to `rets_property` |
+| `OpenHouseDate`, `OH_StartTime`, `OH_EndTime` | When the open house happens |
+| `all_data` | JSON blob containing additional fields, including `OpenHouseRemarks` — not its own column |
+
+Indexes (see `backend/sql/week9_indexes.sql`): a functional index on `(LOWER(TRIM(L_City)), L_SystemPrice)` since MySQL can't match a transformed value against a plain-column index, plus indexes for beds, baths, zip, and `ListingContractDate`.
+
+## Testing
+
+```bash
+# backend — Jest + Supertest, database mocked at the pool level
+cd backend
+npm test
+npm run test:coverage
+
+# frontend — Jest + React Testing Library (via react-scripts)
+cd frontend
+CI=true npm test -- --coverage
+```
+
+Backend tests cover `routes/properties.js` end to end (every filter, pagination, sorting, validation error, and 404/500 path) against a mocked `pool.query`, so no live database is needed to run them. Frontend tests cover `PropertyFilters`, `Pagination`, and `PropertyCard` at 100% statement/line coverage, plus existing coverage for the API client, hooks, and other components from earlier weeks.
+
+## Known Issues & Future Improvements
+
+- **No automated end-to-end tests.** Backend and frontend are tested independently; nothing currently verifies the full request/response contract between them (e.g. a backend field rename wouldn't be caught until manual testing).
+- **`L_Photos` and open house `all_data` are loosely-typed JSON blobs from the MLS feed.** Parsing is defensive (`try/catch` with fallbacks) but a malformed row is silently swallowed rather than logged anywhere visible.
+- **No authentication or rate limiting.** All endpoints are public and unauthenticated, which is fine for local development but would need addressing before any real deployment.
+- **Sorting and filtering are not composable with full-text search.** There's no search-by-keyword across address/remarks fields yet — filters are limited to the specific columns listed in the [API Reference](#api-reference).
+- **No CI pipeline.** Tests and lint currently only run locally — a GitHub Actions workflow to run `npm test` and `npm run lint` on every PR would catch regressions earlier than the current PR-template checklist does.
+- **Favorites are `localStorage`-only.** They don't sync across browsers/devices and are lost if the user clears site data.
 
 ---
 
@@ -538,3 +801,28 @@ src/
 **Symptom:** `npm run lint` didn't exist as a script, even though Create React App bundles ESLint internally (it just runs during `start`/`build`, not standalone).
 
 **Fix:** Added `eslint` and `eslint-config-react-app` as dev dependencies and a `lint` script (`eslint src --ext .js,.jsx --max-warnings 0`), plus a `no-console` rule (errors allowed, matching the ErrorBoundary and backend logging patterns already in use) to catch stray debug statements going forward instead of relying on a manual grep.
+
+## Week 11 — Comprehensive Testing & Documentation
+
+No new product features this week — the goal was 70%+ test coverage on critical paths and a README a new developer could set up from without asking questions. The [Tech Stack](#tech-stack) through [Known Issues](#known-issues--future-improvements) sections above are the deliverable for the documentation half of this week; this section covers how the testing half went.
+
+### Backend Tests
+
+`backend/routes/properties.test.js` uses Jest + Supertest against a real `express` app with only `propertiesRouter` mounted, with the database pool mocked via `jest.mock('../src/db/db', () => ({ query: jest.fn() }))`. Using a factory (rather than `jest.mock('../src/db/db')` with no factory) matters here: `db.js` calls `pool.getConnection()` and `process.exit(1)` on failure the moment it's required, so an auto-mock that still evaluates the real module would try to open a live connection during `npm test` and crash the test run. The factory replaces the module entirely — the real file never executes.
+
+Coverage: **100% statements/branches/functions/lines** on `routes/properties.js`, enforced going forward via a `coverageThreshold` in `backend/jest.config.js`.
+
+Tests cover:
+- `GET /api/properties` — default pagination, custom `limit`/`offset`, every filter (`city`, `zipcode`, `minPrice`/`maxPrice`, `beds`, `baths`) individually, `sortBy`/`sortOrder` (including the default-ASC and no-sort-requested fallback paths), and a `400` for every invalid input (bad limit/offset, non-numeric or negative price/beds/baths, bad `sortBy`/`sortOrder`), plus a `500` on a simulated database error.
+- `GET /api/properties/:id` — success, `404` for an unknown ID, `400` for a malformed ID, `500` on database error.
+- `GET /api/properties/:id/openhouses` — success, empty result set (property exists, no open houses — distinct from the 404 case), `404` for an unknown property, `400` for a malformed ID, `500` on database error.
+
+### Frontend Tests
+
+`PropertyFilters` and `Pagination` already had full test suites from earlier weeks (Weeks 6 and 7) covering every case the Week 11 guide calls for — no changes needed, coverage was already 100% statements/lines on both. `PropertyCard.test.js` had tests for the favorite-heart behavior but not for the two other required cases, so two tests were added: `renders property data` (asserts price, address, city/state, beds, baths, and sqft all render from the `property` prop) and `clicking the card navigates to the property detail page` (asserts the enclosing `<Link>` has the correct `href`).
+
+Coverage on all three target components: **100% statements, functions, and lines**; branch coverage is 94–100% (the two untested branches are `PropTypes` runtime-only validation paths, which don't execute in a normal render and aren't part of the components' actual behavior).
+
+### Comments Pass
+
+Added a short header comment to `db.js` explaining why the module connects to the database as a side effect of being `require`d (rather than exporting a `connect()` function) — that behavior is what made the `jest.mock` factory approach necessary above, so it's worth being explicit about. `properties.js`, `parsePhotos.js`, and `Pagination.jsx` already had comments explaining the non-obvious query-building, photo-parsing, and pagination-math logic from earlier weeks (Weeks 3, 5, and 7) and didn't need additions.
