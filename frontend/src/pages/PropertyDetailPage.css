@@ -18,6 +18,10 @@
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
 }
 
 .property-detail__back::before {
@@ -88,6 +92,7 @@
 .property-detail__facts dd {
   margin: 0;
   font-weight: 500;
+  overflow-wrap: break-word;
 }
 
 .property-detail__status {
