@@ -28,6 +28,24 @@ function renderCard() {
   );
 }
 
+test('renders property data', () => {
+  renderCard();
+
+  expect(screen.getByText('$2,150,000')).toBeInTheDocument();
+  expect(screen.getByText('3766 Deedham Drive')).toBeInTheDocument();
+  expect(screen.getByText('San Jose, CA')).toBeInTheDocument();
+  expect(screen.getByText('4 bd')).toBeInTheDocument();
+  expect(screen.getByText('3 ba')).toBeInTheDocument();
+  expect(screen.getByText('2,170 sqft')).toBeInTheDocument();
+});
+
+test('clicking the card navigates to the property detail page', () => {
+  renderCard();
+
+  const link = screen.getByRole('link');
+  expect(link).toHaveAttribute('href', `/property/${property.L_ListingID}`);
+});
+
 test('heart button toggles favorited state and shows filled heart', () => {
   renderCard();
   const heartBtn = screen.getByRole('button', { name: /add to favorites/i });
