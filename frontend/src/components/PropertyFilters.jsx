@@ -21,8 +21,8 @@ function stripEmpty(filters) {
   return result;
 }
 
-export default function PropertyFilters({ onSearch, onClear }) {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+export default function PropertyFilters({ onSearch, onClear, initialFilters = {} }) {
+  const [filters, setFilters] = useState({ ...EMPTY_FILTERS, ...initialFilters });
 
   function handleChange(e) {
     const { name, value } = e.target;
