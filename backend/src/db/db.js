@@ -16,6 +16,14 @@ const pool = mysql.createPool({
 // Export the pool to use in other files
 module.exports = pool;
 
+// Verify connectivity as soon as this module is required, rather than via a
+// separate connect() call — this is a deliberate fail-fast: if the database
+// is unreachable, the process exits immediately instead of starting a server
+// that would fail on its first query. One consequence: any test that imports
+// a route file which requires this module will trigger a real connection
+// attempt unless the module is mocked first (see routes/properties.test.js,
+// which mocks this file with a factory so its top-level code never runs).
+
 // Keep the event loop alive and verify connectivity on startup
 pool.getConnection()
   .then(conn => {
