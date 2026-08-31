@@ -1,0 +1,17 @@
+# Requested files not be included, also dont include source data files
+*.csv
+*.xlsx
+*.sql
+
+#credentials
+.env
+
+#ignore the code for external libraries
+node_modules/
+
+#ignore the local database container
+idx-mysql-local/
+
+.DS_Store
+
+coverage/
