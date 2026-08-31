@@ -111,13 +111,13 @@ router.get('/', async (req, res) =>  {
     if (minPrice !== undefined && (isNaN(Number(minPrice)) || Number(minPrice) < 0)) {
         return res.status(400).json({ error: 'minPrice must be a non-negative number'});
     }
-    if (maxPrice !== undefined && (isNaN(Number(maxPrice)) || Number(maxPrice)) < 0) {
+    if (maxPrice !== undefined && (isNaN(Number(maxPrice)) || Number(maxPrice) < 0)) {
         return res.status(400).json({ error: 'maxPrice must be a non-negative number'});
     }
-    if (beds !== undefined && (!Number.isInteger(Number(beds)) || Number(beds)) < 0) {
+    if (beds !== undefined && (!Number.isInteger(Number(beds)) || Number(beds) < 0)) {
         return res.status(400).json({ error: 'beds must be a non-negative integer'});
     }
-    if (baths !== undefined && (isNaN(Number(baths)) || Number(baths)) < 0) {
+    if (baths !== undefined && (isNaN(Number(baths)) || Number(baths) < 0)) {
         return res.status(400).json({ error: 'baths must be a non-negative number'});
     }
 
